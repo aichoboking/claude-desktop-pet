@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+pet_event.json
+pet_error.log
+build/
+dist/
+*.spec
