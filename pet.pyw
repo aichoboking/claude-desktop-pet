@@ -105,8 +105,17 @@ except Exception:
 
 # ------------------------------------------------------------------ sprites
 def available_chars():
-    return [c for c in ("baek", "kkam")
-            if os.path.exists(os.path.join(SPR, f"{c}_idle.png"))]
+    # a character = any "<name>_idle.png" in the sprites folder. The file-name
+    # prefix IS the character (and its display name, unless mapped in NAMES).
+    found = []
+    try:
+        for fn in os.listdir(SPR):
+            if fn.endswith("_idle.png"):
+                found.append(fn[:-9])              # strip "_idle.png"
+    except OSError:
+        pass
+    return [c for c in ("baek", "kkam") if c in found] + \
+           sorted(c for c in found if c not in ("baek", "kkam"))
 
 def load_poses(char):
     poses = {}
@@ -244,6 +253,10 @@ for _fn, _args, _res in [
 ]:
     _fn.argtypes = _args
     _fn.restype = _res
+kernel32.CreateMutexW.restype = HANDLE
+kernel32.CreateMutexW.argtypes = [c_void_p, BOOL, c_wchar_p]
+kernel32.GetLastError.restype = DWORD
+_owner_mutex = None                              # single-owner lock (for recall)
 
 # ------------------------------------------------------------------ state
 state = {
@@ -370,6 +383,11 @@ def check_event():
             elif t == "duo":                   # owner brings the partner back
                 if OWNER:
                     become_duo()
+            elif t == "show":                  # re-running the app -> come to a visible spot
+                sw2 = user32.GetSystemMetrics(0); sh2 = user32.GetSystemMetrics(1)
+                state["wx"] = sw2 - W - 30 - SLOT * 150; state["wy"] = sh2 - H - 60
+                user32.SetWindowPos(_hwnd, HWND_TOPMOST, state["wx"], state["wy"], 0, 0,
+                                    SWP_NOSIZE | SWP_NOACTIVATE)
             elif t == "clear":                 # user is active in this project's terminal
                 proj = d.get("project")
                 if proj:
@@ -505,10 +523,11 @@ def push(img):
 
 def show_menu():
     hmenu = user32.CreatePopupMenu()
-    if "baek" in CHARS:
-        user32.AppendMenuW(hmenu, MF_STRING, 10, "백이만 보기")
-    if "kkam" in CHARS:
-        user32.AppendMenuW(hmenu, MF_STRING, 11, "깜이만 보기")
+    solo_ids = {}
+    _cid = 20
+    for c in CHARS:
+        user32.AppendMenuW(hmenu, MF_STRING, _cid, f"{NAMES.get(c, c)}만 보기")
+        solo_ids[_cid] = c; _cid += 1
     if len(CHARS) >= 2:
         user32.AppendMenuW(hmenu, MF_STRING, 12, "두마리 보기")
     user32.AppendMenuW(hmenu, MF_SEPARATOR, 0, None)
@@ -532,9 +551,8 @@ def show_menu():
     elif cmd == 3: write_event("feed")
     elif cmd == 5: write_event("clear")
     elif cmd == 6: write_event("size")
-    elif cmd == 10: write_event("solo", char="baek")
-    elif cmd == 11: write_event("solo", char="kkam")
     elif cmd == 12: write_event("duo")
+    elif cmd in solo_ids: write_event("solo", char=solo_ids[cmd])
     elif cmd == 2: user32.DestroyWindow(_hwnd)
 
 def wndproc(hwnd, msg, wp, lp):
@@ -602,7 +620,12 @@ def wndproc(hwnd, msg, wp, lp):
 _wndproc_cb = WNDPROC(wndproc)
 
 def main():
-    global _hwnd
+    global _hwnd, _owner_mutex
+    if OWNER:                                    # only one main pet -> re-launch = recall
+        _owner_mutex = kernel32.CreateMutexW(None, False, "ClaudePet_owner_mutex")
+        if kernel32.GetLastError() == 183:       # ERROR_ALREADY_EXISTS
+            write_event("show")                  # tell the running pet to pop to a visible spot
+            return
     hInst = kernel32.GetModuleHandleW(None)
     cls = WNDCLASS()
     cls.style = CS_DBLCLKS
