@@ -217,10 +217,11 @@
 
   <!-- 4. 나만의 캐릭터 -->
   <div class="section">
-    <div class="section-header"><div class="section-num">4</div><div class="section-title">나만의 캐릭터로 바꾸기 (이미지만 교체)</div></div>
+    <div class="section-header"><div class="section-num">4</div><div class="section-title">나만의 캐릭터로 바꾸기 (이름·그림·동작 전부)</div></div>
     <div class="step-block-desc" style="margin-bottom:14px;">
-      <strong>파이썬 같은 거 필요 없어요.</strong> 내가 만든 AI 그림을 정해진 이름으로 저장해서
-      <strong>ClaudePet.exe 옆에 sprites 폴더</strong>에 넣기만 하면, 그 캐릭터가 바탕화면에 살아요. 강아지·토끼·내 최애 무엇이든!
+      <strong>파이썬 같은 거 필요 없어요.</strong> 핵심은 하나 —
+      <strong>파일 이름 앞부분이 그대로 캐릭터 이름</strong>이 돼요. 내 고양이 이름이 <strong>몽이</strong>라면
+      <span class="tag">몽이_idle.png</span> 처럼 저장하면 말풍선에 <strong>“몽이”</strong>로 뜨고 그 그림으로 움직여요.
     </div>
 
     <div class="step-block">
@@ -233,26 +234,27 @@
 
     <div class="step-block">
       <div class="step-block-header"><div class="step-circle">2</div>
-        <div><div class="step-block-title">아래 이름 그대로 저장 (6장)</div>
-        <div class="step-block-desc">baek = 첫 번째 캐릭터.</div></div>
+        <div><div class="step-block-title">‘내이름_동작.png’ 으로 저장</div>
+        <div class="step-block-desc">앞의 <strong>몽이</strong> 자리에 원하는 이름을 넣으면 돼요. (아래는 예시)</div></div>
       </div>
       <table class="dl-table">
-        <tr><th>파일 이름</th><th>어떤 모습</th></tr>
-        <tr><td><strong>baek_idle.png</strong></td><td>기본 (평소 모습)</td></tr>
-        <tr><td><strong>baek_sleep.png</strong></td><td>자는 모습</td></tr>
-        <tr><td><strong>baek_crawl.png</strong></td><td>걷는 / 기어가는 모습</td></tr>
-        <tr><td><strong>baek_react.png</strong></td><td>신난 표정</td></tr>
-        <tr><td><strong>baek_eat.png</strong></td><td>먹는 모습 (그릇+먹이까지 그리면 예뻐요)</td></tr>
-        <tr><td><strong>baek_happy.png</strong></td><td>쓰다듬을 때 행복한 표정</td></tr>
+        <tr><th>파일 이름</th><th>이 동작에 쓰여요</th></tr>
+        <tr><td><strong>몽이_idle.png</strong></td><td>평소 모습 — <b>이 한 장은 꼭 필요</b></td></tr>
+        <tr><td><strong>몽이_sleep.png</strong></td><td>자는 모습</td></tr>
+        <tr><td><strong>몽이_crawl.png</strong></td><td>걷는 / 기어가는 모습</td></tr>
+        <tr><td><strong>몽이_react.png</strong></td><td>대화할 때 신난 표정</td></tr>
+        <tr><td><strong>몽이_eat.png</strong></td><td>먹이주기 (그릇+먹이까지 그리면 예뻐요)</td></tr>
+        <tr><td><strong>몽이_happy.png</strong></td><td>쓰다듬을 때 행복한 표정</td></tr>
       </table>
-      <div class="tip">두 번째 캐릭터(짝꿍)는 앞부분만 <strong>kkam_</strong> 으로 (kkam_idle.png …). 일부만 바꿔도 나머지는 원래 그림 그대로 나와요.</div>
+      <div class="tip"><strong>idle 한 장만 있어도</strong> 동작해요(안 만든 포즈는 평소 모습으로 대체). 6장 다 만들면 완벽!
+        두 마리로 보고 싶으면 다른 이름으로 한 세트 더 만들면 돼요 (예: <span class="tag">코코_idle.png</span> …).</div>
     </div>
 
     <div class="step-block">
       <div class="step-block-header"><div class="step-circle">3</div>
         <div><div class="step-block-title">exe 옆에 sprites 폴더 넣고 실행</div>
-        <div class="step-block-desc"><strong>ClaudePet.exe</strong> 와 같은 곳에 <strong>sprites</strong> 라는 폴더를 만들어 내 이미지들을 넣어요.
-          → exe 더블클릭하면 <strong>내 캐릭터</strong>가 나와요!</div></div>
+        <div class="step-block-desc"><strong>ClaudePet.exe</strong> 와 같은 곳에 <strong>sprites</strong> 라는 폴더를 만들어 그 안에 내 이미지를 넣어요.
+          → exe 더블클릭하면 <strong>내 캐릭터(내 이름)</strong>가 나와요!</div></div>
       </div>
     </div>
   </div>
