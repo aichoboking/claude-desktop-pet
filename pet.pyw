@@ -53,6 +53,8 @@ from PIL import Image, ImageDraw, ImageFont
 W, H      = 260, 190
 FPS_MS    = 45
 NAMES     = {"baek": "백이", "kkam": "깜이"}
+TYPES     = {"baek": "고양이", "kkam": "고양이", "후추": "고양이", "삼냥이": "고양이",
+             "꼬미": "강아지", "토리": "토끼"}
 GRACE_SEC     = 8      # wait before an alert actually shows (skips the terminal you're in)
 ACTIVE_WINDOW = 75     # after you type in a project, don't nag that project for this long
 MESSAGES  = {
@@ -537,7 +539,8 @@ def show_menu():
     solo_ids = {}
     _cid = 20
     for c in CHARS:
-        user32.AppendMenuW(submenu, MF_STRING, _cid, NAMES.get(c, c))
+        _label = NAMES.get(c, c) + (f" ({TYPES[c]})" if c in TYPES else "")
+        user32.AppendMenuW(submenu, MF_STRING, _cid, _label)
         solo_ids[_cid] = c; _cid += 1
     if "baek" in CHARS and "kkam" in CHARS:
         user32.AppendMenuW(submenu, MF_SEPARATOR, 0, None)
