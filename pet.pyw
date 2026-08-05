@@ -25,13 +25,13 @@ if getattr(sys, "frozen", False):                 # running as a bundled .exe
     DATA = os.path.join(os.environ.get("LOCALAPPDATA",
                         os.path.dirname(sys.executable)), "ClaudePet")
     os.makedirs(DATA, exist_ok=True)
-    # customization: if a "sprites" folder sits next to the .exe, use those
-    # images instead of the bundled ones -> swap images = new character.
-    _ext = os.path.join(os.path.dirname(sys.executable), "sprites")
-    SPR  = _ext if os.path.isdir(_ext) else os.path.join(BASE, "sprites")
+    # customization: a "sprites" folder next to the .exe ADDS your own characters
+    # on top of the built-in ones (external looked up first, then bundled).
+    SPRDIRS = [os.path.join(os.path.dirname(sys.executable), "sprites"),
+               os.path.join(BASE, "sprites")]
 else:
     BASE = DATA = HERE
-    SPR = os.path.join(BASE, "sprites")
+    SPRDIRS = [os.path.join(HERE, "sprites")]
 EVENT  = os.path.join(DATA, "pet_event.json")
 ERRLOG = os.path.join(DATA, "pet_error.log")
 
@@ -104,24 +104,32 @@ except Exception:
     F_MSG = F_NAME = ImageFont.load_default()
 
 # ------------------------------------------------------------------ sprites
+def _sprite_path(name):                            # look in external dir first, then bundled
+    for d in SPRDIRS:
+        p = os.path.join(d, name)
+        if os.path.exists(p):
+            return p
+    return None
+
 def available_chars():
-    # a character = any "<name>_idle.png" in the sprites folder. The file-name
+    # a character = any "<name>_idle.png" across the sprite folders. The file-name
     # prefix IS the character (and its display name, unless mapped in NAMES).
-    found = []
-    try:
-        for fn in os.listdir(SPR):
-            if fn.endswith("_idle.png"):
-                found.append(fn[:-9])              # strip "_idle.png"
-    except OSError:
-        pass
+    found = set()
+    for d in SPRDIRS:
+        try:
+            for fn in os.listdir(d):
+                if fn.endswith("_idle.png"):
+                    found.add(fn[:-9])             # strip "_idle.png"
+        except OSError:
+            pass
     return [c for c in ("baek", "kkam") if c in found] + \
            sorted(c for c in found if c not in ("baek", "kkam"))
 
 def load_poses(char):
     poses = {}
     for p in ("idle", "sleep", "crawl", "crawl_r", "react", "eat", "happy"):
-        fp = os.path.join(SPR, f"{char}_{p}.png")
-        if os.path.exists(fp):
+        fp = _sprite_path(f"{char}_{p}.png")
+        if fp:
             poses[p] = Image.open(fp).convert("RGBA")
     poses.setdefault("crawl_r", poses["crawl"].transpose(Image.FLIP_LEFT_RIGHT))
     poses.setdefault("sleep", poses["idle"])
@@ -130,7 +138,7 @@ def load_poses(char):
 
 CHARS = available_chars()
 if not CHARS:
-    raise RuntimeError("no sprite sets found in " + SPR)
+    raise RuntimeError("no sprite sets found in " + ", ".join(SPRDIRS))
 ALLPOSES = {c: load_poses(c) for c in CHARS}
 
 # CLI: pet.pyw [baek|kkam] [slot]  — run two instances (slot 0 / 1) for an
@@ -160,8 +168,8 @@ else:
     BUB_DX = 0
 
 def _load(name):
-    p = os.path.join(SPR, name)
-    return Image.open(p).convert("RGBA") if os.path.exists(p) else None
+    p = _sprite_path(name)
+    return Image.open(p).convert("RGBA") if p else None
 FOOD = _load("food.png")
 BOWL = _load("bowl.png")
 
@@ -181,7 +189,7 @@ WM_DESTROY, WM_TIMER = 0x0002, 0x0113
 WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP = 0x0200, 0x0201, 0x0202
 WM_LBUTTONDBLCLK, WM_RBUTTONUP = 0x0203, 0x0205
 TPM_RETURNCMD, TPM_NONOTIFY = 0x0100, 0x0080
-MF_STRING, MF_SEPARATOR, MF_GRAYED = 0x0000, 0x0800, 0x0001
+MF_STRING, MF_SEPARATOR, MF_GRAYED, MF_POPUP = 0x0000, 0x0800, 0x0001, 0x0010
 
 class BLENDFUNCTION(Structure):
     _fields_ = [("BlendOp", c_ubyte), ("BlendFlags", c_ubyte),
@@ -325,21 +333,23 @@ def become_solo(char):                          # collapse to a single cat of `c
     state["pose"] = "idle"; state["eat_until"] = 0.0; state["happy_until"] = 0.0
     say(f"{CNAME} 등장이다냥~", dur=4, sound=False)
 
-def become_duo():                               # owner spawns the partner (once)
-    global PARTNER, CNAME, BUB_DX
+def become_duo(primary=None, partner=None):     # owner becomes `primary`, spawns `partner`
+    global PARTNER, CHAR, POSES, CNAME, BUB_DX
     if len(CHARS) < 2 or PARTNER is not None:
         return
-    other = next(c for c in CHARS if c != CHAR)
-    PARTNER = other; BUB_DX = -70
-    CNAME = f"{NAMES.get(CHAR, CHAR)} & {NAMES.get(other, other)}"
+    p = primary if primary in CHARS else CHAR
+    o = partner if (partner in CHARS and partner != p) else next(c for c in CHARS if c != p)
+    CHAR = p; POSES = ALLPOSES[p]
+    PARTNER = o; BUB_DX = -70
+    CNAME = f"{NAMES.get(p, p)} & {NAMES.get(o, o)}"
     try:
         if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable, other, "1"], close_fds=True)
+            subprocess.Popen([sys.executable, o, "1"], close_fds=True)
         else:
-            subprocess.Popen([sys.executable, os.path.abspath(sys.argv[0]), other, "1"],
-                             close_fds=True)
+            subprocess.Popen([sys.executable, os.path.abspath(sys.argv[0]), o, "1"], close_fds=True)
     except Exception:
         pass
+    state["pose"] = "idle"; state["eat_until"] = 0.0; state["happy_until"] = 0.0
     say(f"{CNAME} 등장이다냥~", dur=4, sound=False)
 
 def talk():
@@ -380,9 +390,9 @@ def check_event():
                     become_solo(d.get("char") or CHAR)
                 else:
                     user32.DestroyWindow(_hwnd)
-            elif t == "duo":                   # owner brings the partner back
+            elif t == "duo":                   # owner brings a specific pair together
                 if OWNER:
-                    become_duo()
+                    become_duo(d.get("char"), d.get("other"))
             elif t == "show":                  # re-running the app -> come to a visible spot
                 sw2 = user32.GetSystemMetrics(0); sh2 = user32.GetSystemMetrics(1)
                 state["wx"] = sw2 - W - 30 - SLOT * 150; state["wy"] = sh2 - H - 60
@@ -523,13 +533,16 @@ def push(img):
 
 def show_menu():
     hmenu = user32.CreatePopupMenu()
+    submenu = user32.CreatePopupMenu()          # 캐릭터 변경 하위 메뉴
     solo_ids = {}
     _cid = 20
     for c in CHARS:
-        user32.AppendMenuW(hmenu, MF_STRING, _cid, f"{NAMES.get(c, c)}만 보기")
+        user32.AppendMenuW(submenu, MF_STRING, _cid, NAMES.get(c, c))
         solo_ids[_cid] = c; _cid += 1
-    if len(CHARS) >= 2:
-        user32.AppendMenuW(hmenu, MF_STRING, 12, "두마리 보기")
+    if "baek" in CHARS and "kkam" in CHARS:
+        user32.AppendMenuW(submenu, MF_SEPARATOR, 0, None)
+        user32.AppendMenuW(submenu, MF_STRING, 12, "깜이 & 백이 (두마리)")
+    user32.AppendMenuW(hmenu, MF_POPUP, submenu, "캐릭터 변경")
     user32.AppendMenuW(hmenu, MF_SEPARATOR, 0, None)
     user32.AppendMenuW(hmenu, MF_STRING, 4, "대화하기")
     user32.AppendMenuW(hmenu, MF_STRING, 1, "쓰다듬기")
@@ -551,7 +564,7 @@ def show_menu():
     elif cmd == 3: write_event("feed")
     elif cmd == 5: write_event("clear")
     elif cmd == 6: write_event("size")
-    elif cmd == 12: write_event("duo")
+    elif cmd == 12: write_event("duo", char="baek", other="kkam")
     elif cmd in solo_ids: write_event("solo", char=solo_ids[cmd])
     elif cmd == 2: user32.DestroyWindow(_hwnd)
 
