@@ -53,8 +53,8 @@ from PIL import Image, ImageDraw, ImageFont
 W, H      = 260, 190
 FPS_MS    = 45
 NAMES     = {"baek": "백이", "kkam": "깜이"}
-TYPES     = {"baek": "고양이", "kkam": "고양이", "후추": "고양이", "삼냥이": "고양이",
-             "꼬미": "강아지", "토리": "토끼"}
+TYPES     = {"baek": "고양이", "kkam": "고양이", "후추": "고양이", "뽀리": "고양이",
+             "꼬미": "강아지", "구름이": "강아지", "토리": "토끼"}
 GRACE_SEC     = 8      # wait before an alert actually shows (skips the terminal you're in)
 ACTIVE_WINDOW = 75     # after you type in a project, don't nag that project for this long
 MESSAGES  = {
